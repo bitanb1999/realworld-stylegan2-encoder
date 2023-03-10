@@ -62,7 +62,7 @@ def recreate_aligned_face(src_image, face_landmarks, output_size=256, transform_
             min(crop[3] + border, img.size[1]))
     if crop[2] - crop[0] < img.size[0] or crop[3] - crop[1] < img.size[1]:
         img = img.crop(crop)
-        quad -= crop[0:2]
+        quad -= crop[:2]
 
     # Pad.
     pad = (int(np.floor(min(quad[:, 0]))), int(np.floor(min(quad[:, 1]))), int(np.ceil(max(quad[:, 0]))),

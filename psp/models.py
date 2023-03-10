@@ -15,8 +15,7 @@ from stylegan2.model import Generator
 def get_keys(d, name):
     if 'state_dict' in d:
         d = d['state_dict']
-    d_filt = {k[len(name) + 1:]: v for k, v in d.items() if k[:len(name)] == name}
-    return d_filt
+    return {k[len(name) + 1:]: v for k, v in d.items() if k[:len(name)] == name}
 
 
 class pSp(nn.Module):
@@ -43,7 +42,7 @@ class pSp(nn.Module):
         elif self.opts.encoder_type == 'MobileGradualStyleEncoder':
             encoder = psp_encoders.MobileGradualStyleEncoder(self.opts)
         else:
-            raise Exception('{} is not a valid encoders'.format(self.opts.encoder_type))
+            raise Exception(f'{self.opts.encoder_type} is not a valid encoders')
         return encoder
 
     def load_weights(self):
@@ -57,8 +56,7 @@ class pSp(nn.Module):
         codes = self.encoder(x)
         # normalize with respect to the center of an average face
         codes = codes + self.latent_avg.repeat(codes.shape[0], 1, 1)
-        images = self.decoder(codes)
-        return images
+        return self.decoder(codes)
 
     def set_opts(self, opts):
         self.opts = opts

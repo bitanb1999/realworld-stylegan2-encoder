@@ -40,7 +40,7 @@ class GradualStyleBlock(Module):
         modules = []
         modules += [Conv2d(in_c, out_c, kernel_size=3, stride=2, padding=1),
                     nn.LeakyReLU()]
-        for i in range(num_pools - 1):
+        for _ in range(num_pools - 1):
             modules += [
                 Conv2d(out_c, out_c, kernel_size=3, stride=2, padding=1),
                 nn.LeakyReLU()

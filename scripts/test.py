@@ -37,11 +37,7 @@ def test_onnx(args):
         ort_session = ort.InferenceSession(args.ckpt)
 
         for i, image in tqdm(enumerate(images), desc="stylegan2 generating..."):
-            if args.align:
-                im = detect_and_align_face(image)
-            else:
-                im = Image.open(image)
-
+            im = detect_and_align_face(image) if args.align else Image.open(image)
             img = (np.array(im).transpose((2, 0, 1)) - 127.5) / 127.5
             img = np.expand_dims(img, 0).astype(np.float32)
             output = ort_session.run([ort_session.get_outputs()[0].name],
@@ -52,10 +48,12 @@ def test_onnx(args):
             output[output > 1] = 1
             output = normalization(output) * 255
             output = Image.fromarray(output.astype('uint8'))
-            output.save(os.path.join(args.save, "{}_{}_{}.png".format(
-                args.network,
-                args.platform,
-                image.split("/")[-1].split(".")[0])))
+            output.save(
+                os.path.join(
+                    args.save,
+                    f'{args.network}_{args.platform}_{image.split("/")[-1].split(".")[0]}.png',
+                )
+            )
 
     elif args.network == "e4e":
         from PIL import Image
@@ -65,11 +63,7 @@ def test_onnx(args):
         ort_session_decoder = ort.InferenceSession(args.ckpt_decoder)
 
         for i, image in tqdm(enumerate(images), desc="stylegan2 generating..."):
-            if args.align:
-                im = detect_and_align_face(image)
-            else:
-                im = Image.open(image)
-
+            im = detect_and_align_face(image) if args.align else Image.open(image)
             img = (np.array(im).transpose((2, 0, 1)) - 127.5) / 127.5
             img = np.expand_dims(img, 0).astype(np.float32)
 
@@ -88,13 +82,17 @@ def test_onnx(args):
             output[output > 1] = 1
             output = normalization(output) * 255
             output = Image.fromarray(output.astype('uint8'))
-            output.save(os.path.join(args.save, "{}_{}_{}.png".format(
-                args.network,
-                args.platform,
-                image.split("/")[-1].split(".")[0])))
+            output.save(
+                os.path.join(
+                    args.save,
+                    f'{args.network}_{args.platform}_{image.split("/")[-1].split(".")[0]}.png',
+                )
+            )
 
     else:
-        print("network:{} not support, only support stylegan2、psp or e4e.".format(args.network))
+        print(
+            f"network:{args.network} not support, only support stylegan2、psp or e4e."
+        )
 
 
 def test_openvino(args):
@@ -103,7 +101,7 @@ def test_openvino(args):
     from PIL import Image
     if args.network == "stylegan2":
         ie = IECore()
-        net = ie.read_network(model=args.ckpt + ".xml", weights=args.ckpt + ".bin")
+        net = ie.read_network(model=f"{args.ckpt}.xml", weights=f"{args.ckpt}.bin")
         input_blob = list(net.input_info.keys())[0]
         exec_net = ie.load_network(net, "CPU")
 
@@ -122,16 +120,12 @@ def test_openvino(args):
         images = [x.path for x in os.scandir(args.images_path) if x.name.endswith(("png", "jpg", "jpeg"))]
 
         ie = IECore()
-        net = ie.read_network(model=args.ckpt + ".xml", weights=args.ckpt + ".bin")
+        net = ie.read_network(model=f"{args.ckpt}.xml", weights=f"{args.ckpt}.bin")
         input_blob = list(net.input_info.keys())[0]
         exec_net = ie.load_network(net, "CPU")
 
         for i, image in tqdm(enumerate(images), desc="stylegan2 generating..."):
-            if args.align:
-                im = detect_and_align_face(image)
-            else:
-                im = Image.open(image)
-
+            im = detect_and_align_face(image) if args.align else Image.open(image)
             img = np.array(im).transpose((2, 0, 1))
             res = exec_net.infer(inputs={input_blob: [img]})
             output = res["output"].squeeze()
@@ -145,21 +139,23 @@ def test_openvino(args):
         images = [x.path for x in os.scandir(args.images_path) if x.name.endswith(("png", "jpg", "jpeg"))]
 
         ie_encoder = IECore()
-        encoder = ie_encoder.read_network(model=args.ckpt_encoder + ".xml", weights=args.ckpt_encoder + ".bin")
+        encoder = ie_encoder.read_network(
+            model=f"{args.ckpt_encoder}.xml",
+            weights=f"{args.ckpt_encoder}.bin",
+        )
         encoder_input_blob = list(encoder.input_info.keys())[0]
         exec_encoder = ie_encoder.load_network(encoder, "CPU")
 
         ie_decoder = IECore()
-        decoder = ie_decoder.read_network(model=args.ckpt_decoder + ".xml", weights=args.ckpt_decoder + ".bin")
+        decoder = ie_decoder.read_network(
+            model=f"{args.ckpt_decoder}.xml",
+            weights=f"{args.ckpt_decoder}.bin",
+        )
         decoder_input_blob = list(decoder.input_info.keys())[0]
         exec_decoder = ie_decoder.load_network(decoder, "CPU")
 
         for i, image in tqdm(enumerate(images), desc="stylegan2 generating..."):
-            if args.align:
-                im = detect_and_align_face(image)
-            else:
-                im = Image.open(image)
-
+            im = detect_and_align_face(image) if args.align else Image.open(image)
             img = np.array(im).transpose((2, 0, 1))
 
             res = exec_encoder.infer(inputs={encoder_input_blob: [img]})
@@ -177,7 +173,9 @@ def test_openvino(args):
             output = Image.fromarray(output)
             output.save(os.path.join(args.save, "{}_{}_{:05d}.png".format(args.network, args.platform, i)))
     else:
-        print("network:{} not support, only support stylegan2、psp or e4e.".format(args.network))
+        print(
+            f"network:{args.network} not support, only support stylegan2、psp or e4e."
+        )
 
 
 @torch.no_grad()
@@ -228,18 +226,14 @@ def test_torch(args):
         net = pSp(opts)
         net.eval()
         for i, image in tqdm(enumerate(images), desc="stylegan2 generating..."):
-            if args.align:
-                im = detect_and_align_face(image)
-            else:
-                im = Image.open(image)
-
+            im = detect_and_align_face(image) if args.align else Image.open(image)
             img = net(trans(im).unsqueeze(0))
             utils.save_image(
                 img,
-                os.path.join(args.save, "{}_{}_{}.png".format(
-                    args.network,
-                    args.platform,
-                    image.split("/")[-1].split(".")[0])),
+                os.path.join(
+                    args.save,
+                    f'{args.network}_{args.platform}_{image.split("/")[-1].split(".")[0]}.png',
+                ),
                 nrow=1,
                 normalize=True,
                 range=(-1, 1),
@@ -276,26 +270,24 @@ def test_torch(args):
         decoder.eval()
 
         for i, image in tqdm(enumerate(images), desc="stylegan2 generating..."):
-            if args.align:
-                im = detect_and_align_face(image)
-            else:
-                im = Image.open(image)
-
+            im = detect_and_align_face(image) if args.align else Image.open(image)
             dlatents = encoder(trans(im).unsqueeze(0))
             img = decoder(dlatents).squeeze(0)
 
             utils.save_image(
                 img,
-                os.path.join(args.save, "{}_{}_{}.png".format(
-                    args.network,
-                    args.platform,
-                    image.split("/")[-1].split(".")[0])),
+                os.path.join(
+                    args.save,
+                    f'{args.network}_{args.platform}_{image.split("/")[-1].split(".")[0]}.png',
+                ),
                 nrow=1,
                 normalize=True,
                 range=(-1, 1),
             )
     else:
-        print("network:{} not support, only support stylegan2、psp or e4e.".format(args.network))
+        print(
+            f"network:{args.network} not support, only support stylegan2、psp or e4e."
+        )
 
 
 if __name__ == "__main__":
@@ -403,7 +395,9 @@ if __name__ == "__main__":
     elif args.platform == "openvino":
         test_openvino(args)
     else:
-        print("platform:{} not support, only support torch、onnx or openvino.".format(args.platform))
+        print(
+            f"platform:{args.platform} not support, only support torch、onnx or openvino."
+        )
 
     print("Test Finished!")
 
